@@ -1,3 +1,4 @@
+import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_swagger_ui import get_swaggerui_blueprint
@@ -18,8 +19,8 @@ swagger_ui_blueprint = get_swaggerui_blueprint(
 app.register_blueprint(swagger_ui_blueprint, url_prefix=SWAGGER_URL)
 
 POSTS = [
-    {"id": 1, "title": "First post", "content": "This is the first post."},
-    {"id": 2, "title": "Second post", "content": "This is the second post."},
+    {"id": 1, "title": "First post", "content": "This is the first post.", "author": "Alice", "date": datetime.date.fromisoformat("2026-03-24").isoformat()},
+    {"id": 2, "title": "Second post", "content": "This is the second post.", "author": "Bob", "date": datetime.date.fromisoformat("2026-03-20").isoformat()},
 ]
 
 def find_post_by_id(id):
@@ -38,7 +39,7 @@ def get_posts():
         "desc": True
     }
     if sort:
-        if sort not in ["title", "content"]:
+        if sort not in ["title", "content", "author", "date"]:
             return jsonify({"error": "invalid sort parameter"}), 400
         if direction_param and direction_param not in ["asc", "desc"]:
             return jsonify({"error": "invalid direction parameter"}), 400
@@ -54,16 +55,16 @@ def get_posts():
 @app.route('/api/posts', methods=['POST'])
 def add_post():
     data = request.get_json()
-    if not data.get("title") and not data.get("content"):
-        return jsonify({"error": "body fields cannot be empty"}), 400
-    if not data.get("title"):
-        return jsonify({"error": "title field cannot be empty"}), 400
-    if not data.get("content"):
-        return jsonify({"error": "content field cannot be empty"}), 400
+    required_fields = ["title", "content", "author"]
+    for field in required_fields:
+        if not data.get(field):
+            return jsonify({"error": f"{field} field cannot be empty"}), 400
     new_post = {
         "id": len(POSTS) + 1,
         "title": data["title"],
-        "content": data["content"]
+        "content": data["content"],
+        "author": data["author"],
+        "date": data.get("date") if data.get("date") else datetime.date.today().isoformat()
     }
     POSTS.append(new_post)
     return jsonify(POSTS), 201
@@ -86,19 +87,20 @@ def update_post(post_id):
         return jsonify({"error": f"post with id {post_id} not found"}), 404
     post["title"] = data.get("title") if data.get("title") else post["title"]
     post["content"] = data.get("content") if data.get("content") else post["content"]
+    post["author"] = data.get("author") if data.get("author") else post["author"]
+    post["date"] = data.get("date") if data.get("date") else post["date"]
     return jsonify(post), 200
 
 
 @app.route('/api/posts/search', methods=['GET'])
 def search_posts():
-    search_title = request.args.get("title", "")
-    search_content = request.args.get("content", "")
+    search_key = request.args.get("key", "")
     match = []
     for post in POSTS:
-        title_match = not search_title or search_title in post["title"]
-        content_match = not search_content or search_content in post["content"]
-        if title_match and content_match:
-            match.append(post)
+        for field in post.values():
+            if search_key in str(field):
+                match.append(post)
+                break # prevents a post from being added twice
     return jsonify(match)
 
 if __name__ == '__main__':
