@@ -23,23 +23,17 @@ def get_posts():
 @app.route('/api/posts', methods=['POST'])
 def add_post():
     data = request.get_json()
-
     if not data.get("title") and not data.get("content"):
         return jsonify({"error": "body fields cannot be empty"}), 400
-
     if not data.get("title"):
         return jsonify({"error": "title field cannot be empty"}), 400
-
     if not data.get("content"):
         return jsonify({"error": "content field cannot be empty"}), 400
-
-
     new_post = {
         "id": len(POSTS) + 1,
         "title": data["title"],
         "content": data["content"]
     }
-
     POSTS.append(new_post)
     return jsonify(POSTS), 201
 
@@ -50,6 +44,16 @@ def delete_post(post_id):
         return jsonify({"error": f"post with id {post_id} not found"}), 404
     POSTS.remove(post)
     return jsonify({"message": f"Post with id {post_id} has been deleted successfully."}), 200
+
+@app.route('/api/posts/<int:post_id>', methods=['PUT'])
+def update_post(post_id):
+    data = request.get_json()
+    post = find_post_by_id(post_id)
+    if not post:
+        return jsonify({"error": f"post with id {post_id} not found"}), 404
+    post["title"] = data.get("title") if data.get("title") else post["title"]
+    post["content"] = data.get("content") if data.get("content") else post["content"]
+    return jsonify(post), 200
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5002, debug=True)
