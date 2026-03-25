@@ -24,15 +24,16 @@ def get_posts():
         "asc": False,
         "desc": True
     }
-    direction = direction_dict[direction_param] if direction_param and direction_param in direction_dict else None
-
     if sort:
-        if direction:
-            sorted_posts = sorted(POSTS, key=lambda x: x[sort], reverse=direction)
-            return jsonify(sorted_posts)
-        else:
-            sorted_posts = sorted(POSTS, key=lambda x: x[sort])
-            return jsonify(sorted_posts)
+        if sort not in ["title", "content"]:
+            return jsonify({"error": "invalid sort parameter"}), 400
+        if direction_param and direction_param not in ["asc", "desc"]:
+            return jsonify({"error": "invalid direction parameter"}), 400
+        direction = direction_dict.get(direction_param, False)
+        sorted_posts = sorted(POSTS, key=lambda x: x[sort], reverse=direction)
+        return jsonify(sorted_posts)
+    if not sort and direction_param:
+        return jsonify({"error": "empty sort parameter"}), 400
 
     return jsonify(POSTS)
 
