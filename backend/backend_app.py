@@ -18,6 +18,22 @@ def find_post_by_id(id):
 
 @app.route('/api/posts', methods=['GET'])
 def get_posts():
+    sort = request.args.get("sort", "")
+    direction_param = request.args.get("direction", "")
+    direction_dict = {
+        "asc": False,
+        "desc": True
+    }
+    direction = direction_dict[direction_param] if direction_param and direction_param in direction_dict else None
+
+    if sort:
+        if direction:
+            sorted_posts = sorted(POSTS, key=lambda x: x[sort], reverse=direction)
+            return jsonify(sorted_posts)
+        else:
+            sorted_posts = sorted(POSTS, key=lambda x: x[sort])
+            return jsonify(sorted_posts)
+
     return jsonify(POSTS)
 
 
